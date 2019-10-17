@@ -1,0 +1,335 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Autodesk Forge - Design Automation</title>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link rel="shortcut icon" href="https://github.com/Autodesk-Forge/learn.forge.viewhubmodels/raw/master/img/favicon.ico">
+    <!-- Common packages: jQuery, Bootstrap -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css">
+    <!-- .NET SignalR -->
+    <script src="//unpkg.com/@aspnet/signalr@1.1.0/dist/browser/signalr.min.js"></script>
+    <!-- Files for this project -->
+    <script src="/js/ForgeDesignAutomation.js"></script>
+    <script src="./js/qr/qr_packed.js" charset="utf-8"></script>
+    <style>
+        .qrbtn {
+            background-color: red;
+            color: #fff;
+            margin: 0 auto;
+            width: 100%;
+            padding: 20px;
+            border-radius: 9px;
+        }
+        .col-sm-4 {
+            margin: 0 auto;
+            width: 15%;
+            height:100px;
+            padding: 0 20px;
+            float:left;
+        }
+        .col-sm-8 {
+            width: 85%;
+            margin: 0 auto;
+        }
+        .row {
+            margin-top:30px;
+            padding-top:60px;
+        }
+        .pre {
+
+        
+        }
+    </style>
+    <!--190711ADD satoayu START-->
+    <!-- Autodesk Forge Viewer files -->
+    <link rel="stylesheet" href="https://developer.api.autodesk.com/modelderivative/v2/viewers/6.*/style.min.css" type="text/css">
+    <script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/6.*/viewer3D.min.js"></script>
+    <!--190711ADD satoayu END-->
+
+</head>
+
+<body style="height: 100vh;">
+    <!-- Fixed navbar by Bootstrap: https://getbootstrap.com/examples/navbar-fixed-top/ -->
+    <nav class="navbar navbar-default navbar-fixed-top">
+        <div class="container-fluid">
+            <ul class="nav navbar-nav left">
+                <li>
+                    <a href="http://developer.autodesk.com" target="_blank">
+                        <img alt="Autodesk Forge" src="//developer.static.autodesk.com/images/logo_forge-2-line.png"
+                             height="20">
+                    </a>
+                </li>
+            </ul>
+            <div style="margin-top: 15px; cursor: pointer; float: right;">
+                <span style="padding-right: 5px;" data-toggle="modal" data-target="#defineActivityModal" title="Configura AppBundle & Activity">
+                    <span class="glyphicon glyphicon-cog glyphiconTop mlink"></span> Configure
+                </span>
+            </div>
+        </div>
+    </nav>
+    <!-- End of navbar -->
+    <div class="container-fluid" style="margin-top: auto;">
+        <div class="row">
+            <div class="col-sm-4">
+                <div id="video-input">
+                    <img id="img" />
+                    <div style="display: none">
+                        <canvas id="canvas"></canvas>
+                    </div>
+                    <div style="margin-top: auto;">
+                        <p hidden style="font-weight: bold; margin-bottom: 5px">アクティブなカメラ</p>
+                        <p hidden font size="0.5" id="active-camera" style="margin-top: 5px" font size="1"></p>
+                    </div>
+                </div>
+                <div id="photo-input" style="display: block">
+                    <div style="text-align: center">
+                        <label for="input-qr" class="qrbtn">QRコードを読み取る</label>
+                        <input type="file" id="input-qr" accept="image/*" capture="environment" tabindex="-1" style="display: none" onchange="openQRCamera(this);">
+                    </div>
+                </div>
+                <div style="margin-top: 3em">
+                    <label for="elemIdStr">読み取ったQRコード<br></label>
+                    <input type="text" class="form-control" id="elemIdStr" value="" style="width:100%">
+                </div>
+                <div style="margin-bottom: 3em">
+                    <label for="commentStr">コメント<br></label>
+                    <input type="text" class="form-control" id="commentStr" value="" placeholder="コメントを入力してください" style="width:100%">
+                </div>
+                <div class="form-group">
+                    <label for="inputFile">Input file</label>
+                    <input type="file" class="form-control-file" id="inputFile">
+                </div>
+                <div class="form-group">
+                    <label for="activity">Existing activities</label>
+                    <select class="form-control" id="activity"> </select>
+                </div>
+                <center><button class="btn btn-primary" id="startWorkitem">Start workitem</button></center><br />
+                <!--190711ADD satoayu START-->
+                <pre id="outputlog" style="height:9em; overflow-y: scroll; margin: 0 auto;"></pre>
+                <!--190711ADD satoayu END-->
+
+            </div>
+            <div class="col-sm-8" style="height: calc(100vh - 120px);">
+                <div id="forgeViewer" style="position: relative;height: 98%;margin: 0;background-color: #F0F8FF;border: 1px solid #ccc;border-radius: 4px;"></div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Define AppBundle & Activity -->
+    <!-- AppBundleとengineを選択するところ -->
+    <div class="modal fade" id="defineActivityModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Cancel"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel">Create/Update AppBundle & Activity</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning"><center>You just need to define AppBundle &amp; Activity once.<br />If the plugin code changed, redefine (creates a new version).</center></div>
+                    <div class="form-group">
+                        <label for="localBundles">Select a local AppBundle:</label>
+                        <select class="form-control" id="localBundles"> </select>
+                        <b>Tip:</b> Make sure .ZIP bundles are placed at <b>/bundles/</b> folder
+                    </div>
+                    <div class="form-group">
+                        <label for="engines">Select engine:</label>
+                        <select class="form-control" id="engines"> </select>
+                    </div>
+                    For this sample the .ZIP name is used as suffix to define <b>AppBundle</b> and <b>Activity</b>
+                    names. Activities will have file and params input, and file output.
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-danger" id="clearAccount">Clear account</button>
+                    <button type="button" class="btn btn-primary" id="createAppBundleActivity">Create/Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<!-- カメラを動かすためのJavascript -->
+<script type="text/javascript">
+    var localStream = null;
+    var ios = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    var devices;
+    var activeIndex;
+    var iosRear = false;
+    var postCount = 0;
+
+    function decodeImageFromBase64(data, callback) {
+        qrcode.callback = callback;
+        qrcode.decode(data);
+    }
+
+    function decode() {
+        if (localStream) {
+            var canvas = document.getElementById('canvas');
+            var ctx = canvas.getContext('2d');
+            var h;
+            var w;
+
+            w = video.videoWidth;
+            h = video.videoHeight;
+
+            canvas.setAttribute('width', w);
+            canvas.setAttribute('height', h);
+            ctx.drawImage(video, 0, 0, w, h);
+
+            decodeImageFromBase64(canvas.toDataURL('image/png'), function (decodeInformation) {
+                var input = document.getElementById('elemIdStr');
+                if (!(decodeInformation instanceof Error)) {
+                    input.value = decodeInformation;
+                }
+            });
+        }
+    }
+
+    function openQRCamera(node) {
+        var reader = new FileReader();
+        reader.onload = function () {
+            node.value = '';
+            qrcode.callback = function (res) {
+                if (res instanceof Error) {
+                    alert('QRコードが見つかりませんでした。QRコードがカメラのフレーム内に収まるよう、再度撮影してください。');
+                } else {
+                    var elemIdStr = document.getElementById('elemIdStr');
+                    elemIdStr.value = res;
+                }
+            };
+
+            qrcode.decode(reader.result);
+        };
+
+        reader.readAsDataURL(node.files[0]);
+    }
+
+    window.onload = function () {
+        var modeChange = function (mode) {
+            if (mode === 'camera') {
+                document.getElementById('video-input').style.display = 'none';
+                document.getElementById('photo-input').style.display = 'block';
+                document.getElementById('toCamera').style.display = 'none';
+                document.getElementById('toMovie').style.display = 'block';
+            } else {
+                document.getElementById('video-input').style.display = 'block';
+                document.getElementById('photo-input').style.display = 'none';
+                document.getElementById('toCamera').style.display = 'block';
+                document.getElementById('toMovie').style.display = 'none';
+            }
+        };
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+            modeChange('camera');
+            return;
+        }
+
+        // カメラ情報取得
+        navigator.mediaDevices.enumerateDevices()
+            .then(function (cameras) {
+                var cams = [];
+                cameras.forEach(function (device) {
+                    if (device.kind === 'videoinput') {
+                        cams.push({
+                            'id': device.deviceId,
+                            'name': device.label
+                        });
+                    }
+                });
+
+                devices = cams;
+                changeCamera(devices.length - 1);
+            })
+            .catch(function (err) {
+                alert('カメラが見つかりません');
+            });
+
+        var video = document.getElementById('video');
+
+        var startReadQR = function () {
+            setInterval('decode();', 500);
+        };
+
+        var changeCamera = function (index) {
+            if (localStream) {
+                localStream.getVideoTracks()[0].stop();
+            }
+
+            activeIndex = index;
+            iosRear = !iosRear;
+            var p = document.getElementById('active-camera');
+            p.innerHTML = devices[activeIndex].name + '(' + devices[activeIndex].id + ')';
+            setCamera();
+        };
+
+        var setCamera = function () {
+            navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || windiow.navigator.mozGetUserMedia;
+            window.URL = window.URL || window.webkitURL;
+
+            var videoOptions;
+
+            if (ios) {
+                videoOptions = {
+                    facingMode: {
+                        exact: (iosRear) ? 'environment' : 'user'
+                    },
+                    mandatory: {
+                        sourceId: devices[activeIndex].id,
+                        minWidth: 600,
+                        maxWidth: 800,
+                        minAspectRatio: 1.6
+                    },
+                    optional: []
+                };
+            } else {
+                videoOptions = {
+                    mandatory: {
+                        sourceId: devices[activeIndex].id,
+                        minWidth: 600,
+                        maxWidth: 800,
+                        minAspectRatio: 1.6
+                    },
+                    optional: []
+                };
+            }
+
+            navigator.getUserMedia(
+                {
+                    audio: false,
+                    video: videoOptions
+                },
+                function (stream) {
+                    if (ios) {
+                        video.srcObject = stream;
+                    } else {
+                        video.src = window.URL.createObjectURL(stream);
+                    }
+                    localStream = stream;
+                },
+                function (err) {
+
+                }
+            );
+
+            startReadQR();
+        };
+
+        document.getElementById('toCamera').addEventListener('click', function () {
+            modeChange('camera');
+        });
+
+        document.getElementById('toMovie').addEventListener('click', function () {
+            modeChange('video');
+        });
+
+        document.getElementById('changeCamera').addEventListener('click', function () {
+            var newIndex = activeIndex + 1;
+            if (newIndex >= devices.length) {
+                newIndex = 0;
+            }
+            changeCamera(newIndex);
+        }, false);
+    };
+</script>
+</html>

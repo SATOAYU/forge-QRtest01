@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+    <PropertyGroup>
+        <TargetFramework>netcoreapp2.1</TargetFramework>
+        <UserSecretsId>b0699221-f999-42ce-a0eb-71383c8ee9bf</UserSecretsId>
+    </PropertyGroup>
+    <ItemGroup>
+      <Content Remove="wwwroot\bundles\UpdateDWGParam.zip" />
+      <Content Remove="wwwroot\bundles\UpdateIPTParam.zip" />
+      <Content Remove="wwwroot\bundles\UpdateIPTParam1.zip" />
+      <Content Remove="wwwroot\bundles\UpdateRVTParam.zip" />
+      <Content Remove="wwwroot\web.config" />
+    </ItemGroup>
+    <ItemGroup>
+      <None Remove="README.md" />
+    </ItemGroup>
+    <ItemGroup>
+        <Folder Include="wwwroot\bundles\" />
+    </ItemGroup>
+    <ItemGroup>
+      <None Include="wwwroot\js\qr\qr_packed.js" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Autodesk.Forge" Version="1.5.2" />
+        <PackageReference Include="Autodesk.Forge.DesignAutomation" Version="3.0.0-beta2" />
+        <PackageReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+</Project>
